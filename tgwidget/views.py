@@ -7,7 +7,7 @@ def index(request):
     return render(request, "index.html", {})
 
 def register(request):
-    user, created = User.get_or_create(tg_id=request.POST.get('id', ''))
+    user, created = TgUser.get_or_create(tg_id=request.POST.get('id', ''))
     user.tg_first_name = request.POST.get('first_name', '')
     user.tg_last_name = request.POST.get('last_name', '')
     user.tg_username = request.POST.get('username', '')
