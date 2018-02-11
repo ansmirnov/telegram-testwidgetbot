@@ -1,4 +1,5 @@
 import os
+import requests
 
 from django.shortcuts import render, redirect
 
@@ -30,3 +31,17 @@ def register(request):
 def logout(request):
     del request.session['user_id']
     return redirect('/')
+
+def send(request):
+    try:
+        user_id = int(request.session['user_id'])
+        user = TgUser.objects.get(user_id)
+    except:
+        return render(request, 'error.html', {
+            'msg': 'You are not logged in!'
+        })
+    bot_token = os.getenv('BOT_TOKEN')
+    chat_id = user.tg_id
+    text = "Hello!"
+    url = "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}".format(bot_token, chat_id, text)
+    requests.get(url)
