@@ -1,23 +1,47 @@
+import os
+import requests
+
 from django.shortcuts import render, redirect
+
 from .models import TgUser
+from .utils import HashCheck
+
 
 # Create your views here.
 
 def index(request):
-    return render(request, "index.html", {})
+    try:
+        user_id = int(request.session['user_id'])
+        user = TgUser.objects.get(id=user_id)
+        return render(request, "welcome.html", {'user': user})
+    except:
+        return render(request, "index.html", {})
 
 def register(request):
-    user, created = TgUser.objects.get_or_create(tg_id=request.POST.get('id', ''))
-    user.tg_first_name = request.POST.get('first_name', '')
-    user.tg_last_name = request.POST.get('last_name', '')
-    user.tg_username = request.POST.get('username', '')
-    user.tg_photo_url = request.POST.get('photo_url', '')
-    user.tg_auth_date = request.POST.get('auth_date', '')
-    user.tg_hash = request.POST.get('hash', '')
-    if user.check_hash():
-        user.save()
-    else:
+    secret = os.getenv('BOT_TOKEN').encode('utf-8')
+    if not HashCheck(request.GET, secret).check_hash():
         return render(request, 'error.html', {
             'msg': 'Bad hash!'
         })
+    user = TgUser.make_from_dict(request.GET)
+    user.save()
+    request.session['user_id'] = user.id
     return redirect('/')
+
+def logout(request):
+    del request.session['user_id']
+    return redirect('/')
+
+def send(request):
+    try:
+        user_id = int(request.session['user_id'])
+        user = TgUser.objects.get(user_id)
+    except:
+        return render(request, 'error.html', {
+            'msg': 'You are not logged in!'
+        })
+    bot_token = os.getenv('BOT_TOKEN')
+    chat_id = user.tg_id
+    text = "Hello!"
+    url = "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}".format(bot_token, chat_id, text)
+    requests.get(url)
